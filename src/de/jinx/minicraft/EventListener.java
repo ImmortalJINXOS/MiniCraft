@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
@@ -25,15 +26,13 @@ public class EventListener implements Listener {
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event)
 	{
-		PlayerInfo p = miniCraft.getPlayerInfo(event.getPlayer());
-		if (p == null)
-			miniCraft.playerInfos.add(new PlayerInfo(event.getPlayer()));
+		miniCraft.getPlayerInfo(event.getPlayer(), true);
 	}
 	
 	@EventHandler
 	public void onPlayerQuit(PlayerQuitEvent event)
 	{
-		PlayerInfo p = miniCraft.getPlayerInfo(event.getPlayer());
+		PlayerInfo p = miniCraft.getPlayerInfo(event.getPlayer(), false);
 		if (p != null) miniCraft.playerInfos.remove(p);
 	}
 	
@@ -45,32 +44,54 @@ public class EventListener implements Listener {
 	@EventHandler
 	public void onInventoryClick(InventoryClickEvent event)
 	{
+		InventoryAction a = event.getAction();
 		if (event.getInventory().getTitle().equals("Select a color"))
 		{
-			PlayerInfo p = miniCraft.getPlayerInfo((Player)event.getWhoClicked());
-			if (p == null || p.selectedArena == null) return;
-			if (p.m_teamIndex == 0)
+			PlayerInfo p = miniCraft.getPlayerInfo((Player)event.getWhoClicked(), true);
+			if (p.selectedArena == null) return;
+			if (p.m_t == 0)
 			{
-				p.selectedArena.team1Color = MiniCraft.ColorCodes[event.getSlot()];
-				p.m_teamIndex = 1;
-				p.player.sendMessage("Team 1 color set to: §" + Integer.toHexString(p.selectedArena.team1Color) + MiniCraft.Colors[event.getSlot()]);
-				p.player.sendMessage("Select color for Team 2");
+				if (a == InventoryAction.PICKUP_HALF)
+				{
+					p.player.sendMessage("Color selection cancelled");
+					Bukkit.getScheduler().runTask(miniCraft, new Runnable() {
+						@Override
+						public void run() {
+							p.player.closeInventory();
+						}
+					});
+				}
+				else
+				{
+					p.selectedArena.team1Color = MiniCraft.ColorCodes[event.getSlot()];
+					p.m_t = 1;
+					p.player.sendMessage("Team 1 color set to: §" + p.selectedArena.team1Color + MiniCraft.Colors[event.getSlot()]);
+					p.player.sendMessage("Select color for Team 2");
+				}
 				event.setCancelled(true);
 			}
-			else if (p.m_teamIndex == 1)
+			else if (p.m_t == 1)
 			{
-				p.selectedArena.team2Color = MiniCraft.ColorCodes[event.getSlot()];
+				if (a == InventoryAction.PICKUP_HALF)
+				{
+					p.m_t = 0;
+					p.player.sendMessage("Select color for Team 1");
+				}
+				else
+				{
+					p.selectedArena.team2Color = MiniCraft.ColorCodes[event.getSlot()];
+					p.player.sendMessage("Team 2 color set to: §" + p.selectedArena.team2Color + MiniCraft.Colors[event.getSlot()]);
+					Bukkit.getScheduler().runTask(miniCraft, new Runnable() {
+						@Override
+						public void run() {
+							p.player.closeInventory();
+						}
+					});
+				}
 				event.setCancelled(true);
-				p.player.sendMessage("Team 2 color set to: §" + Integer.toHexString(p.selectedArena.team2Color) + MiniCraft.Colors[event.getSlot()]);
-				Bukkit.getScheduler().runTask(miniCraft, new Runnable() {
-					@Override
-					public void run() {
-						p.player.closeInventory();
-					}
-					
-				});
 			}
 		}
+		
 	}
 	
 	@EventHandler
@@ -87,6 +108,10 @@ public class EventListener implements Listener {
 				{
 					player.getInventory().setItemInHand(miniCraft.arenaToolTeam2);
 				}
+				else if (action == Action.LEFT_CLICK_BLOCK)
+				{
+					miniCraft.openSpawnSelection(player, event.getClickedBlock().getLocation(), 0);
+				}
 				event.setCancelled(true);
 			}
 			else if (is.equals(miniCraft.arenaToolTeam2))
@@ -94,6 +119,10 @@ public class EventListener implements Listener {
 				if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK)
 				{
 					player.getInventory().setItemInHand(miniCraft.arenaToolTeam1);
+				}
+				else if (action == Action.LEFT_CLICK_BLOCK)
+				{
+					miniCraft.openSpawnSelection(player, event.getClickedBlock().getLocation(), 1);
 				}
 				event.setCancelled(true);
 			}

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import de.jinx.minicraft.Arena;
+import de.jinx.minicraft.PlayerInfo;
 
 public abstract class GameMode {
 
@@ -15,7 +16,7 @@ public abstract class GameMode {
 	public static Map<String, Class> GameModes = new HashMap<String, Class>();
 	private static Logger logger;
 	
-	public abstract void getEffects(List effects);
+	public abstract void applyEffects(PlayerInfo player);
 	
 	public static void register(String name, Class gm)
 	{

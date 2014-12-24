@@ -11,14 +11,14 @@ import de.jinx.minicraft.gamemodes.GameMode;
 public class Arena {
 	
 	public int ID;
-	public PlayerInfo[] players = new PlayerInfo[6]; // 3v3
+	public List players = new ArrayList();
 	public int team1PlayerCount;
 	public int team2PlayerCount;
-	public byte team1Color;
-	public byte team2Color;
+	public char team1Color;
+	public char team2Color;
 	public GameMode gameMode;
-	public List<Location> team1Spawns = new ArrayList<Location>();
-	public List<Location> team2Spawns = new ArrayList<Location>();
+	public Location[] team1Spawns = new Location[9];
+	public Location[] team2Spawns = new Location[9];
 	
 	public Arena(int id)
 	{

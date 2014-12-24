@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -13,6 +14,7 @@ import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.material.MaterialData;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import de.jinx.minicraft.gamemodes.GameMode;
@@ -22,13 +24,41 @@ import de.jinx.minicraft.weapons.testing;
 public class MiniCraft extends JavaPlugin {
 
 	public static String[] Colors = new String[]{"White", "Orange", "Magenta", "Light Blue", "Yellow", "Lime", "Pink", "Gray", "Light Gray", "Cyan", "Purple", "Blue", "Brown", "Green", "Red", "Black"};
-	public static byte[] ColorCodes = new byte[]{0xf, 6, 0xd, 0xb, 0xe, 0xa, 0xc, 8, 7, 3, 5, 1, 4, 2, 0xc, 0};
+	public static char[] ColorCodes = new char[]{'f', '6', 'd', 'b', 'e', 'a', 'c', '8', '7', '3', '5', '1', '4', '2', 'c', '0'};
 	
 	List<Arena> arenas = new ArrayList<Arena>();
 	List<PlayerInfo> playerInfos = new ArrayList<PlayerInfo>();
 	ItemStack arenaToolTeam1;
 	ItemStack arenaToolTeam2;
 	Inventory colorSelectInventory;
+	
+	public void openSpawnSelection(Player p, Location l, int teamIndex)
+	{
+		PlayerInfo pl = getPlayerInfo(p, true);
+		if (pl.selectedArena == null) return;
+		pl.m_l = l;
+		pl.m_t = teamIndex;
+		
+		Inventory inv = Bukkit.createInventory(null, 9, "Select spawn");
+		for (int i = 0; i < 9; i++)
+		{
+			ItemStack is = new ItemStack(Material.WOOL);
+			ItemMeta im = is.getItemMeta();
+			MaterialData id = is.getData();
+			im.setDisplayName("Spawn #" + i);
+			is.setItemMeta(im);
+			if ((teamIndex == 0 && pl.selectedArena.team1Spawns[i] != null) || (teamIndex == 1 && pl.selectedArena.team2Spawns[i] != null))
+			{
+				id.setData((byte)5);
+				is.setData(id);
+				inv.addItem(is);
+			}
+			else
+			{
+				inv.addItem(is);
+			}
+		}
+	}
 	
 	private void prepareTools()
 	{	
@@ -93,8 +123,8 @@ public class MiniCraft extends JavaPlugin {
 			{
 				if (sender instanceof Player)
 				{
-					PlayerInfo pi = getPlayerInfo((Player)sender);
-					if (pi != null && pi.selectedArena != null)
+					PlayerInfo pi = getPlayerInfo((Player)sender, true);
+					if (pi.selectedArena != null)
 					{
 						pi.selectedArena.printInfo(sender);
 					}
@@ -130,8 +160,8 @@ public class MiniCraft extends JavaPlugin {
 				}
 				if (sender instanceof Player)
 				{
-					PlayerInfo pi = getPlayerInfo((Player)sender);
-					if (pi == null || pi.selectedArena == null)
+					PlayerInfo pi = getPlayerInfo((Player)sender, true);
+					if (pi.selectedArena == null)
 					{
 						sender.sendMessage("Select an arena with /arena select {id} first");
 					}
@@ -175,12 +205,7 @@ public class MiniCraft extends JavaPlugin {
 						sender.sendMessage("An arena with this ID does not exist, use /arena create [ID] to create one");
 						return true;
 					}
-					PlayerInfo pi = getPlayerInfo((Player)sender);
-					if (pi == null)
-					{
-						pi = new PlayerInfo((Player)sender);
-						playerInfos.add(pi);
-					}
+					PlayerInfo pi = getPlayerInfo((Player)sender, true);
 					pi.selectedArena = arena;
 					pi.player.sendMessage("Selected Arena #" + arena.ID);
 				}
@@ -210,14 +235,9 @@ public class MiniCraft extends JavaPlugin {
 					Arena arena = new Arena(id);
 					arenas.add(arena);
 					Player player = (Player)sender;
-					PlayerInfo pi = getPlayerInfo(player);
-					if (pi == null)
-					{
-						pi = new PlayerInfo(player);
-						playerInfos.add(pi);
-					}
+					PlayerInfo pi = getPlayerInfo(player, true);
 					pi.selectedArena = arena;
-					pi.m_teamIndex = 0;
+					pi.m_t = 0;
 					player.openInventory(colorSelectInventory);
 					player.sendMessage("Arena #" + id + " created");
 					player.sendMessage("Select color for Team 1");
@@ -237,7 +257,7 @@ public class MiniCraft extends JavaPlugin {
 	}
 	
 	
-	public PlayerInfo getPlayerInfo(Player p)
+	public PlayerInfo getPlayerInfo(Player p, boolean createIfNessessary)
 	{
 		for (PlayerInfo pi : playerInfos) // Loop through the list and delete the player if found
 		{
@@ -245,6 +265,12 @@ public class MiniCraft extends JavaPlugin {
 			{
 				return pi;
 			}
+		}
+		if (createIfNessessary)
+		{
+			PlayerInfo pt = new PlayerInfo(p);
+			playerInfos.add(pt);
+			return pt;
 		}
 		return null;
 	}
