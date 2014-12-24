@@ -1,0 +1,10 @@
+name: MiniCraft
+version: 1.0
+authors: [JINX, Smarties]
+main: de.jinx.minicraft.MiniCraft
+
+commands:
+    arena:
+        description: Temporary
+        permission: minicraft.arena
+        usage: Temporary
